@@ -61,34 +61,6 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     }
 
     /**
-     * @dev Getter for the total ETH released on the contract
-     */
-    function totalEthReleased() external view onlyOwner returns (uint256) {
-        return _totalEthReleased;
-    }
-
-    /**
-     * @dev Getter for the total ERC20 released on the contract
-     */
-    function totalErc20Released(IERC20 token) external view onlyOwner returns (uint256) {
-        return _totalErc20Released[token];
-    }
-
-    /**
-     * @dev Getter for the total ETH withdrawed on the contract
-     */
-    function totalEthWithdrawed() external view onlyOwner returns (uint256) {
-        return _totalEthWithdrawed;
-    }
-
-    /**
-     * @dev Getter for the total ERC20 released on the contract
-     */
-    function totalErc20Withdrawed(IERC20 token) external view onlyOwner returns (uint256) {
-        return _totalErc20Withdrawed[token];
-    }
-
-    /**
      * @dev Getter for the amount of shares held by an account.
      */
     function shares(address account) public view override returns (uint256) {
@@ -325,4 +297,37 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
 
         emit ERC20PaymentWithdrawed(token, receiver, amount);
     }
+
+    /**
+     * @dev Getter for the total ETH released on the contract
+     */
+    function totalEthReleased() external view onlyOwner returns (uint256) {
+        return _totalEthReleased;
+    }
+
+    /**
+     * @dev Getter for the total ERC20 released on the contract
+     */
+    function totalErc20Released(IERC20 token) external view onlyOwner returns (uint256) {
+        return _totalErc20Released[token];
+    }
+
+    /**
+     * @dev Getter for the total ETH withdrawed on the contract
+     */
+    function totalEthWithdrawed() external view onlyOwner returns (uint256) {
+        return _totalEthWithdrawed;
+    }
+
+    /**
+     * @dev Getter for the total ERC20 released on the contract
+     */
+    function totalErc20Withdrawed(IERC20 token) external view onlyOwner returns (uint256) {
+        return _totalErc20Withdrawed[token];
+    }
+
+    function listOfPayees() external view onlyOwner returns (address[] memory) {
+        return _payees;
+    }
+
 }
