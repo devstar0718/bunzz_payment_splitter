@@ -16,14 +16,6 @@ import "./interfaces/IBunzz.sol";
  * that the Ether will be split in this way, since it is handled transparently by the contract.
  */
 contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
-    event PayeeAdded(address account, uint256 shares);
-    event PayeeRemoved(address account);
-    event PayeeUpdatedShares(address account, uint256 beforeShares, uint256 shares);
-    event PayeeUpdatedStatus(address account, bool beforeStatus, bool status);
-
-    event EthPaymentWithdrawed(address to, uint256 amount);
-    event ERC20PaymentWithdrawed(IERC20 indexed token, address to, uint256 amount);
-
     uint256 private _totalShares; // Total shares
 
     uint256 private _totalEthReleased; // Total released eth
@@ -45,6 +37,14 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
 
     address[] private _payees; // _payees list
 
+    event PayeeAdded(address account, uint256 shares);
+    event PayeeRemoved(address account);
+    event PayeeUpdatedShares(address account, uint256 beforeShares, uint256 shares);
+    event PayeeUpdatedStatus(address account, bool beforeStatus, bool status);
+
+    event EthPaymentWithdrawed(address to, uint256 amount);
+    event ERC20PaymentWithdrawed(IERC20 indexed token, address to, uint256 amount);
+
     constructor() {
 
     }
@@ -59,54 +59,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     function totalShares() external view override returns (uint256) {
         return _totalShares;
     }
-
-    /**
-     * @dev Getter for the amount of shares held by an account.
-     */
-    function shares(address account) public view override returns (uint256) {
-        return _payeeInfos[account].shares;
-    }
-
-    /**
-     * @dev Getter for a payeer is enabled or not
-     */
-    function isEnabled(address account) public view override returns (bool) {
-        return _payeeInfos[account].enabled;
-    }
-
-    /**
-     * @dev Getter for a payeer is exists or not
-     * @param account Payee address
-     */
-    function isPayee(address account) public view override returns (bool) {
-        return _payeeInfos[account].exists;
-    }
-
-    /**
-     * @dev Getter for the amount of Ether already released to a payee.
-     * @param account Payee address
-     */
-    function ethReleased(address account) public view override returns (uint256) {
-        return _payeeInfos[account].ethReleased;
-    }
-
-    /**
-     * @dev Getter for the amount of `token` tokens already released to a payee. `token` should be the address of an
-     * IERC20 contract.
-     * @param token IERC20 The address of the token contract
-     * @param account address The address which will receive the tokens
-     */
-    function erc20Released(IERC20 token, address account) public view override returns (uint256) {
-        return _payeeInfos[account].erc20Released[token];
-    }
-
-    /**
-     * @dev Getter for number of the payee address.
-     */
-    function payeeCount() public view override returns (uint256) {
-        return _payees.length;
-    }
-
+    
     /**
      * @dev Add a new payee to the contract.
      * @param _account The address of the payee to add.
@@ -136,7 +89,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         
         _totalShares -= shares(_account);
         delete _payeeInfos[_account];
-
+        
         for (uint256 i = 0; i < _payees.length; i++) {
             if (_payees[i] == _account) {
                 _payees[i] = _payees[_payees.length - 1];
@@ -182,50 +135,6 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         emit PayeeUpdatedStatus(_account, _beforeStatus, _status);
     }
 
-    
-
-    /**
-     * @dev Getter for the amount of payee's releasable Ether.
-     * @param account The address of the payee to query.
-     */
-    function releasableEth(address account) public view override returns (uint256) {
-        require(isPayee(account), "PaymentSplitter: account not added");
-
-        uint256 _amount = address(this).balance * shares(account) / _totalShares;
-        return _amount;
-    }
-
-    /**
-     * @dev Getter for the amount of payee's releasable `token` tokens. `token` should be the address of an
-     * IERC20 contract.
-     * @param token IERC20 The address of the token contract
-     * @param account address The address which will receive the tokens
-     */
-    function releasableErc20(IERC20 token, address account) public view override returns (uint256) {
-        require(isPayee(account), "PaymentSplitter: account not added");
-
-        uint256 _amount = token.balanceOf(address(this)) * shares(account) / _totalShares;
-        return _amount;
-    }
-
-    /**
-     * @dev Transfers available Ether of the contract to a payee.
-     * @param account The address to release Ether to.
-     */
-    function releaseEth(address payable account) private {
-        require(isEnabled(account), "PaymentSplitter: account not enabled");
-
-        uint256 payment = releasableEth(account);
-
-        require(payment != 0, "PaymentSplitter: account is not due payment");
-
-        _payeeInfos[account].ethReleased += payment;
-        _totalEthReleased += payment;
-
-        Address.sendValue(account, payment);
-        emit EthPaymentReleased(account, payment);
-    }
-
     /**
      * @dev Transfers available Ether of the contract to all _payees based on their shares
      */
@@ -235,25 +144,6 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
                 releaseEth(payable(_payees[i]));
             }
         }
-    }
-
-    /**
-     * @dev Transfers available `token` tokens of the contract to a payee.
-     * @param token IERC20 The address of the token contract
-     * @param account address The address which will receive the tokens
-     */
-    function releaseErc20(IERC20 token, address account) private {
-        require(isEnabled(account), "PaymentSplitter: account not enabled");
-
-        uint256 payment = releasableErc20(token, account);
-
-        require(payment != 0, "PaymentSplitter: account is not due payment");
-
-        _payeeInfos[account].erc20Released[token] += payment;
-        _totalErc20Released[token] += payment;
-
-        SafeERC20.safeTransfer(token, account, payment);
-        emit ERC20PaymentReleased(token, account, payment);
     }
 
     /**
@@ -330,4 +220,111 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         return _payees;
     }
 
+    /**
+     * @dev Getter for the amount of shares held by an account.
+     */
+    function shares(address account) public view override returns (uint256) {
+        return _payeeInfos[account].shares;
+    }
+
+    /**
+     * @dev Getter for a payeer is enabled or not
+     */
+    function isEnabled(address account) public view override returns (bool) {
+        return _payeeInfos[account].enabled;
+    }
+
+    /**
+     * @dev Getter for a payeer is exists or not
+     * @param account Payee address
+     */
+    function isPayee(address account) public view override returns (bool) {
+        return _payeeInfos[account].exists;
+    }
+
+    /**
+     * @dev Getter for the amount of Ether already released to a payee.
+     * @param account Payee address
+     */
+    function ethReleased(address account) public view override returns (uint256) {
+        return _payeeInfos[account].ethReleased;
+    }
+
+    /**
+     * @dev Getter for the amount of `token` tokens already released to a payee. `token` should be the address of an
+     * IERC20 contract.
+     * @param token IERC20 The address of the token contract
+     * @param account address The address which will receive the tokens
+     */
+    function erc20Released(IERC20 token, address account) public view override returns (uint256) {
+        return _payeeInfos[account].erc20Released[token];
+    }
+
+    /**
+     * @dev Getter for number of the payee address.
+     */
+    function payeeCount() public view override returns (uint256) {
+        return _payees.length;
+    }
+
+    /**
+     * @dev Getter for the amount of payee's releasable Ether.
+     * @param account The address of the payee to query.
+     */
+    function releasableEth(address account) public view override returns (uint256) {
+        require(isPayee(account), "PaymentSplitter: account not added");
+
+        uint256 _amount = address(this).balance * shares(account) / _totalShares;
+        return _amount;
+    }
+
+    /**
+     * @dev Getter for the amount of payee's releasable `token` tokens. `token` should be the address of an
+     * IERC20 contract.
+     * @param token IERC20 The address of the token contract
+     * @param account address The address which will receive the tokens
+     */
+    function releasableErc20(IERC20 token, address account) public view override returns (uint256) {
+        require(isPayee(account), "PaymentSplitter: account not added");
+
+        uint256 _amount = token.balanceOf(address(this)) * shares(account) / _totalShares;
+        return _amount;
+    }
+
+    /**
+     * @dev Transfers available Ether of the contract to a payee.
+     * @param account The address to release Ether to.
+     */
+    function releaseEth(address payable account) private {
+        require(isEnabled(account), "PaymentSplitter: account not enabled");
+
+        uint256 payment = releasableEth(account);
+
+        require(payment != 0, "PaymentSplitter: account is not due payment");
+
+        _payeeInfos[account].ethReleased += payment;
+        _totalEthReleased += payment;
+
+        Address.sendValue(account, payment);
+        emit EthPaymentReleased(account, payment);
+    }
+
+    /**
+     * @dev Transfers available `token` tokens of the contract to a payee.
+     * @param token IERC20 The address of the token contract
+     * @param account address The address which will receive the tokens
+     */
+    function releaseErc20(IERC20 token, address account) private {
+        require(isEnabled(account), "PaymentSplitter: account not enabled");
+
+        uint256 payment = releasableErc20(token, account);
+
+        require(payment != 0, "PaymentSplitter: account is not due payment");
+
+        _payeeInfos[account].erc20Released[token] += payment;
+        _totalErc20Released[token] += payment;
+
+        SafeERC20.safeTransfer(token, account, payment);
+        emit ERC20PaymentReleased(token, account, payment);
+    }
 }
