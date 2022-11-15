@@ -7,209 +7,322 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import "./interfaces/IPaymentSplitter.sol";
+import "./interfaces/IBunzz.sol";
 
 /**
  * @title PaymentSplitter
  * @dev This contract allows to split Ether payments among a group of accounts. The sender does not need to be aware
  * that the Ether will be split in this way, since it is handled transparently by the contract.
- *
- * The split can be in equal parts or in any other arbitrary proportion. The way this is specified is by assigning each
- * account to a number of shares. Of all the Ether that this contract receives, each account will then be able to claim
- * an amount proportional to the percentage of total shares they were assigned. The distribution of shares is set at the
- * time of contract deployment and can't be updated thereafter.
- *
- * `PaymentSplitter` follows a _pull payment_ model. This means that payments are not automatically forwarded to the
- * accounts but kept in this contract, and the actual transfer is triggered as a separate step by calling the {release}
- * function.
- *
- * NOTE: This contract assumes that ERC20 tokens will behave similarly to native tokens (Ether). Rebasing tokens, and
- * tokens that apply fees during transfers, are likely to not be supported as expected. If in doubt, we encourage you
- * to run tests before sending real value to this contract.
  */
-contract PaymentSplitter is Context {
+contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     event PayeeAdded(address account, uint256 shares);
-    event PaymentReleased(address to, uint256 amount);
-    event ERC20PaymentReleased(IERC20 indexed token, address to, uint256 amount);
-    event PaymentReceived(address from, uint256 amount);
+    event PayeeRemoved(address account);
+    event PayeeUpdatedShares(address account, uint256 beforeShares, uint256 shares);
+    event PayeeUpdatedStatus(address account, bool beforeStatus, bool status);
 
-    uint256 private _totalShares;
-    uint256 private _totalReleased;
+    event EthPaymentWithdrawed(address to, uint256 amount);
+    event ERC20PaymentWithdrawed(IERC20 indexed token, address to, uint256 amount);
 
-    mapping(address => uint256) private _shares;
-    mapping(address => uint256) private _released;
-    address[] private _payees;
+    uint256 private _totalShares; // Total shares
 
-    mapping(IERC20 => uint256) private _erc20TotalReleased;
-    mapping(IERC20 => mapping(address => uint256)) private _erc20Released;
+    uint256 private _totalEthReleased; // Total released eth
+    mapping(IERC20 => uint256) private _totalErc20Released; // Total released erc20
 
-    /**
-     * @dev Creates an instance of `PaymentSplitter` where each account in `payees` is assigned the number of shares at
-     * the matching position in the `shares` array.
-     *
-     * All addresses in `payees` must be non-zero. Both arrays must have the same non-zero length, and there must be no
-     * duplicates in `payees`.
-     */
-    constructor(address[] memory payees, uint256[] memory shares_) payable {
-        require(payees.length == shares_.length, "PaymentSplitter: payees and shares length mismatch");
-        require(payees.length > 0, "PaymentSplitter: no payees");
+    uint256 private _totalEthWithdrawed; // Total withdrawed eth
+    mapping(IERC20 => uint256) private _totalErc20Withdrawed; // Total withdrawed erc20
 
-        for (uint256 i = 0; i < payees.length; i++) {
-            _addPayee(payees[i], shares_[i]);
-        }
+    address public paymentContract;
+
+    struct PayeeInfo {
+        uint256 shares; // Shares assigned to the payee
+        uint256 ethReleased; // Released eth to the payee
+        mapping(IERC20 => uint256) erc20Released; // Released erc20 to the payee
+        bool enabled; // Payee status
+        bool exists; // Payee exists
+    }
+    mapping(address => PayeeInfo) private _payeeInfos; // Payee infos
+
+    address[] private _payees; // _payees list
+
+    constructor() {
+
     }
 
-    /**
-     * @dev The Ether received will be logged with {PaymentReceived} events. Note that these events are not fully
-     * reliable: it's possible for a contract to receive Ether without triggering this function. This only affects the
-     * reliability of the events, and not the actual splitting of Ether.
-     *
-     * To learn more about this see the Solidity documentation for
-     * https://solidity.readthedocs.io/en/latest/contracts.html#fallback-function[fallback
-     * functions].
-     */
-    receive() external payable virtual {
-        emit PaymentReceived(_msgSender(), msg.value);
-    }
-
-    /**
-     * @dev Getter for the total shares held by payees.
-     */
-    function totalShares() public view returns (uint256) {
-        return _totalShares;
-    }
-
-    /**
-     * @dev Getter for the total amount of Ether already released.
-     */
-    function totalReleased() public view returns (uint256) {
-        return _totalReleased;
-    }
-
-    /**
-     * @dev Getter for the total amount of `token` already released. `token` should be the address of an IERC20
-     * contract.
-     */
-    function totalReleased(IERC20 token) public view returns (uint256) {
-        return _erc20TotalReleased[token];
+    function connectToOtherContracts(address[] calldata contracts) external override onlyOwner {
+        paymentContract = contracts[0];
     }
 
     /**
      * @dev Getter for the amount of shares held by an account.
      */
-    function shares(address account) public view returns (uint256) {
-        return _shares[account];
+    function totalShares() external view override returns (uint256) {
+        return _totalShares;
+    }
+
+    /**
+     * @dev Getter for the total ETH released on the contract
+     */
+    function totalEthReleased() external view onlyOwner returns (uint256) {
+        return _totalEthReleased;
+    }
+
+    /**
+     * @dev Getter for the total ERC20 released on the contract
+     */
+    function totalErc20Released(IERC20 token) external view onlyOwner returns (uint256) {
+        return _totalErc20Released[token];
+    }
+
+    /**
+     * @dev Getter for the total ETH withdrawed on the contract
+     */
+    function totalEthWithdrawed() external view onlyOwner returns (uint256) {
+        return _totalEthWithdrawed;
+    }
+
+    /**
+     * @dev Getter for the total ERC20 released on the contract
+     */
+    function totalErc20Withdrawed(IERC20 token) external view onlyOwner returns (uint256) {
+        return _totalErc20Withdrawed[token];
+    }
+
+    /**
+     * @dev Getter for the amount of shares held by an account.
+     */
+    function shares(address account) public view override returns (uint256) {
+        return _payeeInfos[account].shares;
+    }
+
+    /**
+     * @dev Getter for a payeer is enabled or not
+     */
+    function isEnabled(address account) public view override returns (bool) {
+        return _payeeInfos[account].enabled;
+    }
+
+    /**
+     * @dev Getter for a payeer is exists or not
+     * @param account Payee address
+     */
+    function isPayee(address account) public view override returns (bool) {
+        return _payeeInfos[account].exists;
     }
 
     /**
      * @dev Getter for the amount of Ether already released to a payee.
+     * @param account Payee address
      */
-    function released(address account) public view returns (uint256) {
-        return _released[account];
+    function ethReleased(address account) public view override returns (uint256) {
+        return _payeeInfos[account].ethReleased;
     }
 
     /**
      * @dev Getter for the amount of `token` tokens already released to a payee. `token` should be the address of an
      * IERC20 contract.
+     * @param token IERC20 The address of the token contract
+     * @param account address The address which will receive the tokens
      */
-    function released(IERC20 token, address account) public view returns (uint256) {
-        return _erc20Released[token][account];
-    }
-
-    /**
-     * @dev Getter for the address of the payee number `index`.
-     */
-    function payee(uint256 index) public view returns (address) {
-        return _payees[index];
+    function erc20Released(IERC20 token, address account) public view override returns (uint256) {
+        return _payeeInfos[account].erc20Released[token];
     }
 
     /**
      * @dev Getter for number of the payee address.
      */
-    function payeeCount() public view returns (uint256) {
+    function payeeCount() public view override returns (uint256) {
         return _payees.length;
     }
 
     /**
-     * @dev Getter for the amount of payee's releasable Ether.
+     * @dev Add a new payee to the contract.
+     * @param _account The address of the payee to add.
+     * @param _shares The number of shares owned by the payee.
      */
-    function releasable(address account) public view returns (uint256) {
-        uint256 totalReceived = address(this).balance + totalReleased();
-        return _pendingPayment(account, totalReceived, released(account));
+    function addPayee(address _account, uint256 _shares) external onlyOwner {
+        require(!isPayee(_account), "PaymentSplitter: account is already a payee");
+        require(_shares > 0, "PaymentSplitter: shares are 0");
+        
+        PayeeInfo storage payeeInfo = _payeeInfos[_account];
+        payeeInfo.shares = _shares;
+        payeeInfo.enabled = true;
+        payeeInfo.exists = true;
+        _payees.push(_account);
+        
+        _totalShares += _shares;
+
+        emit PayeeAdded(_account, _shares);
+    }
+
+    /**
+     * @dev Remove a payee from the contract.
+     * @param _account The address of the payee to remove.
+     */
+    function removePayee(address _account) external onlyOwner {
+        require(isPayee(_account), "PaymentSplitter: account not added");
+        
+        _totalShares -= shares(_account);
+        delete _payeeInfos[_account];
+
+        for (uint256 i = 0; i < _payees.length; i++) {
+            if (_payees[i] == _account) {
+                _payees[i] = _payees[_payees.length - 1];
+                _payees.pop();
+                break;
+            }
+        }
+
+        emit PayeeRemoved(_account);
+    }
+
+    /**
+     * @dev Update a payee shares.
+     * @param _account The address of the payee to update.
+     * @param _shares The number of shares owned by the payee.
+     */
+    function updatePayeeShares(address _account, uint256 _shares) external onlyOwner {
+        require(isPayee(_account), "PaymentSplitter: account not added");
+        require(_shares > 0, "PaymentSplitter: cannot update to 0, please remove the Payee instead");
+        
+        PayeeInfo storage payeeInfo = _payeeInfos[_account];
+        uint256 _beforeShares = payeeInfo.shares;
+        payeeInfo.shares = _shares;
+
+        _totalShares -= _beforeShares;
+        _totalShares += _shares;
+
+        emit PayeeUpdatedShares(_account, _beforeShares, _shares);
+    }
+
+    /**
+     * @dev Update a payee status.
+     * @param _account The address of the payee to update.
+     * @param _status The new status of the payee.
+     */
+    function updatePayeeStatus(address _account, bool _status) external onlyOwner {
+        require(isPayee(_account), "PaymentSplitter: account not added");
+        
+        PayeeInfo storage payeeInfo = _payeeInfos[_account];
+        bool _beforeStatus = payeeInfo.enabled;
+        payeeInfo.enabled = _status;
+
+        emit PayeeUpdatedStatus(_account, _beforeStatus, _status);
+    }
+
+    
+
+    /**
+     * @dev Getter for the amount of payee's releasable Ether.
+     * @param account The address of the payee to query.
+     */
+    function releasableEth(address account) public view override returns (uint256) {
+        require(isPayee(account), "PaymentSplitter: account not added");
+
+        uint256 _amount = address(this).balance * shares(account) / _totalShares;
+        return _amount;
     }
 
     /**
      * @dev Getter for the amount of payee's releasable `token` tokens. `token` should be the address of an
      * IERC20 contract.
+     * @param token IERC20 The address of the token contract
+     * @param account address The address which will receive the tokens
      */
-    function releasable(IERC20 token, address account) public view returns (uint256) {
-        uint256 totalReceived = token.balanceOf(address(this)) + totalReleased(token);
-        return _pendingPayment(account, totalReceived, released(token, account));
+    function releasableErc20(IERC20 token, address account) public view override returns (uint256) {
+        require(isPayee(account), "PaymentSplitter: account not added");
+
+        uint256 _amount = token.balanceOf(address(this)) * shares(account) / _totalShares;
+        return _amount;
     }
 
     /**
-     * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to their percentage of the
-     * total shares and their previous withdrawals.
+     * @dev Transfers available Ether of the contract to a payee.
+     * @param account The address to release Ether to.
      */
-    function release(address payable account) public virtual {
-        require(_shares[account] > 0, "PaymentSplitter: account has no shares");
+    function releaseEth(address payable account) private {
+        require(isEnabled(account), "PaymentSplitter: account not enabled");
 
-        uint256 payment = releasable(account);
+        uint256 payment = releasableEth(account);
 
         require(payment != 0, "PaymentSplitter: account is not due payment");
 
-        _released[account] += payment;
-        _totalReleased += payment;
+        _payeeInfos[account].ethReleased += payment;
+        _totalEthReleased += payment;
 
         Address.sendValue(account, payment);
-        emit PaymentReleased(account, payment);
+        emit EthPaymentReleased(account, payment);
     }
 
     /**
-     * @dev Triggers a transfer to `account` of the amount of `token` tokens they are owed, according to their
-     * percentage of the total shares and their previous withdrawals. `token` must be the address of an IERC20
-     * contract.
+     * @dev Transfers available Ether of the contract to all _payees based on their shares
      */
-    function release(IERC20 token, address account) public virtual {
-        require(_shares[account] > 0, "PaymentSplitter: account has no shares");
+    function releaseEth() external override {
+        for (uint256 i = 0; i < _payees.length; i++) {
+            if(isEnabled(_payees[i])) {
+                releaseEth(payable(_payees[i]));
+            }
+        }
+    }
 
-        uint256 payment = releasable(token, account);
+    /**
+     * @dev Transfers available `token` tokens of the contract to a payee.
+     * @param token IERC20 The address of the token contract
+     * @param account address The address which will receive the tokens
+     */
+    function releaseErc20(IERC20 token, address account) private {
+        require(isEnabled(account), "PaymentSplitter: account not enabled");
+
+        uint256 payment = releasableErc20(token, account);
 
         require(payment != 0, "PaymentSplitter: account is not due payment");
 
-        _erc20Released[token][account] += payment;
-        _erc20TotalReleased[token] += payment;
+        _payeeInfos[account].erc20Released[token] += payment;
+        _totalErc20Released[token] += payment;
 
         SafeERC20.safeTransfer(token, account, payment);
         emit ERC20PaymentReleased(token, account, payment);
     }
 
     /**
-     * @dev internal logic for computing the pending payment of an `account` given the token historical balances and
-     * already released amounts.
-     */
-    function _pendingPayment(
-        address account,
-        uint256 totalReceived,
-        uint256 alreadyReleased
-    ) private view returns (uint256) {
-        return (totalReceived * _shares[account]) / _totalShares - alreadyReleased;
+     * @dev Transfers available `token` tokens of the contract to all _payees based on their shares
+     */ 
+    function releaseEr20(IERC20 token) external override {
+        for (uint256 i = 0; i < _payees.length; i++) {
+            if(isEnabled(_payees[i])) {
+                releaseErc20(token, _payees[i]);
+            }
+        }
     }
 
     /**
-     * @dev Add a new payee to the contract.
-     * @param account The address of the payee to add.
-     * @param shares_ The number of shares owned by the payee.
+     * @dev Allows admin to withdraw Eth to a receiver without shares.
+     * @param receiver The address of the receiver.
+     * @param amount The amount of Eth to withdraw.
      */
-    function _addPayee(address account, uint256 shares_) private {
-        require(account != address(0), "PaymentSplitter: account is the zero address");
-        require(shares_ > 0, "PaymentSplitter: shares are 0");
-        require(_shares[account] == 0, "PaymentSplitter: account already has shares");
+    function withdrawEth(address payable receiver, uint256 amount) external onlyOwner{
+        require(receiver != address(0), "PaymentSplitter: receiver is the zero address");
+        require(address(this).balance >= amount, "PaymentSplitter: not enough balance");
 
-        _payees.push(account);
-        _shares[account] = shares_;
-        _totalShares = _totalShares + shares_;
-        emit PayeeAdded(account, shares_);
+        Address.sendValue(receiver, amount);
+        _totalEthWithdrawed += amount;
+
+        emit EthPaymentWithdrawed(receiver, amount);
     }
 
+    /**
+     * @dev Allows admin to withdraw tokens to a receiver without shares.
+     * @param token IERC20 The address of the token contract
+     * @param receiver address The address which will receive the tokens
+     * @param amount uint256 The amount of tokens to withdraw
+     */
+    function withdrawErc20(IERC20 token, address receiver, uint256 amount) external onlyOwner{
+        require(receiver != address(0), "PaymentSplitter: receiver is the zero address");
+        require(token.balanceOf(address(this)) >= amount, "PaymentSplitter: not enough balance");
+
+        SafeERC20.safeTransfer(token, receiver, amount);
+        _totalErc20Withdrawed[token] += amount;
+
+        emit ERC20PaymentWithdrawed(token, receiver, amount);
+    }
 }
