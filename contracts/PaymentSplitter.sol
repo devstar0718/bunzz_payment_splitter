@@ -377,6 +377,9 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         uint256 _totalReleasableAmount = _onlyAfterRelease
             ? _releaseableAmount
             : address(this).balance;
+
+        if (_totalShares == 0) return 0;
+
         uint256 _amount = (_totalReleasableAmount * shares(account)) /
             _totalShares;
         return _amount;
@@ -399,6 +402,9 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         uint256 _totalReleasableAmount = _onlyAfterRelease
             ? _releaseableAmount
             : token.balanceOf(address(this));
+
+        if (_totalShares == 0) return 0;
+
         uint256 _amount = (_totalReleasableAmount * shares(account)) /
             _totalShares;
         return _amount;
