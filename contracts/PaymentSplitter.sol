@@ -24,6 +24,9 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     uint256 private _totalEthWithdrawed; // Total withdrawed eth
     mapping(IERC20 => uint256) private _totalErc20Withdrawed; // Total withdrawed erc20
 
+    bool private _onlyAfterRelease; // checking release flag
+    uint256 private _releaseableAmount; // releaseable amount
+
     address public paymentContract;
 
     struct PayeeInfo {
@@ -53,7 +56,32 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         uint256 amount
     );
 
+    modifier onlyAfterReleaseEth() {
+        require(_onlyAfterRelease != true);
+        _onlyAfterRelease = true;
+        _releaseableAmount = address(this).balance;
+        _;
+        // By storing the original value once again, a refund is triggered (see
+        // https://eips.ethereum.org/EIPS/eip-2200)
+        _onlyAfterRelease = false;
+    }
+
+    modifier onlyAfterReleaseErc20(IERC20 token) {
+        require(_onlyAfterRelease != true);
+        _onlyAfterRelease = true;
+        _releaseableAmount = token.balanceOf(address(this));
+        _;
+        // By storing the original value once again, a refund is triggered (see
+        // https://eips.ethereum.org/EIPS/eip-2200)
+        _onlyAfterRelease = false;
+    }
+
     constructor() {}
+
+    /**
+     * @dev receive BNB when msg.data is empty
+     **/
+    receive() external payable {}
 
     function connectToOtherContracts(address[] calldata contracts)
         external
@@ -160,7 +188,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     /**
      * @dev Transfers available Ether of the contract to all _payees based on their shares
      */
-    function releaseEth() external override {
+    function releaseEth() external override onlyAfterReleaseEth {
         for (uint256 i = 0; i < _payees.length; i++) {
             if (isEnabled(_payees[i])) {
                 releaseEth(payable(_payees[i]));
@@ -171,7 +199,11 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     /**
      * @dev Transfers available `token` tokens of the contract to all _payees based on their shares
      */
-    function releaseEr20(IERC20 token) external override {
+    function releaseEr20(IERC20 token)
+        external
+        override
+        onlyAfterReleaseErc20(token)
+    {
         for (uint256 i = 0; i < _payees.length; i++) {
             if (isEnabled(_payees[i])) {
                 releaseErc20(token, _payees[i]);
@@ -192,6 +224,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
             receiver != address(0),
             "PaymentSplitter: receiver is the zero address"
         );
+        require(amount > 0, "PaymentSplitter: amount is the zero");
         require(
             address(this).balance >= amount,
             "PaymentSplitter: not enough balance"
@@ -218,6 +251,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
             receiver != address(0),
             "PaymentSplitter: receiver is the zero address"
         );
+        require(amount > 0, "PaymentSplitter: amount is the zero");
         require(
             token.balanceOf(address(this)) >= amount,
             "PaymentSplitter: not enough balance"
@@ -340,7 +374,10 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     {
         require(isPayee(account), "PaymentSplitter: account not added");
 
-        uint256 _amount = (address(this).balance * shares(account)) /
+        uint256 _totalReleasableAmount = _onlyAfterRelease
+            ? _releaseableAmount
+            : address(this).balance;
+        uint256 _amount = (_totalReleasableAmount * shares(account)) /
             _totalShares;
         return _amount;
     }
@@ -359,7 +396,10 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     {
         require(isPayee(account), "PaymentSplitter: account not added");
 
-        uint256 _amount = (token.balanceOf(address(this)) * shares(account)) /
+        uint256 _totalReleasableAmount = _onlyAfterRelease
+            ? _releaseableAmount
+            : token.balanceOf(address(this));
+        uint256 _amount = (_totalReleasableAmount * shares(account)) /
             _totalShares;
         return _amount;
     }
