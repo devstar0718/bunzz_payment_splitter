@@ -7,15 +7,18 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IPaymentSplitter {
-
     event EthPaymentReleased(address to, uint256 amount);
-    event ERC20PaymentReleased(IERC20 indexed token, address to, uint256 amount);
+    event ERC20PaymentReleased(
+        IERC20 indexed token,
+        address to,
+        uint256 amount
+    );
 
     /**
      * @dev Getter for the amount of shares held by an account.
      */
     function totalShares() external view returns (uint256);
-    
+
     /**
      * @dev Getter for the amount of shares held by an account.
      */
@@ -44,7 +47,10 @@ interface IPaymentSplitter {
      * @param token IERC20 The address of the token contract
      * @param account address The address which will receive the tokens
      */
-    function erc20Released(IERC20 token, address account) external view returns (uint256);
+    function erc20Released(IERC20 token, address account)
+        external
+        view
+        returns (uint256);
 
     /**
      * @dev Getter for the amount of payee's releasable Ether.
@@ -58,7 +64,10 @@ interface IPaymentSplitter {
      * @param token IERC20 The address of the token contract
      * @param account address The address which will receive the tokens
      */
-    function releasableErc20(IERC20 token, address account) external view returns (uint256);
+    function releasableErc20(IERC20 token, address account)
+        external
+        view
+        returns (uint256);
 
     /**
      * @dev Getter for number of the payee address.
@@ -72,6 +81,6 @@ interface IPaymentSplitter {
 
     /**
      * @dev Transfers available `token` tokens of the contract to all payees based on their shares
-     */ 
+     */
     function releaseEr20(IERC20 token) external;
 }
