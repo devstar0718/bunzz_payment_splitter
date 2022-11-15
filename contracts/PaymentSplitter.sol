@@ -63,6 +63,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         _;
         // By storing the original value once again, a refund is triggered (see
         // https://eips.ethereum.org/EIPS/eip-2200)
+        _releaseableAmount = 0;
         _onlyAfterRelease = false;
     }
 
@@ -73,6 +74,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         _;
         // By storing the original value once again, a refund is triggered (see
         // https://eips.ethereum.org/EIPS/eip-2200)
+        _releaseableAmount = 0;
         _onlyAfterRelease = false;
     }
 
