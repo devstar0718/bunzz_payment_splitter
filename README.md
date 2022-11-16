@@ -40,7 +40,8 @@ Remove a payee from the contract, only by **owner**
 `updatePayeeShares`
 
 Update a payee shares, only by **owner**
-A payee shares can't be 0
+
+A payee's shares can't be 0
 
 | name      | type    | description                             |
 | :-------- | :------ | :-------------------------------------- |
@@ -51,7 +52,8 @@ A payee shares can't be 0
 
 `updatePayeeStatus`
 
-Update a payee status, only by **owner**.
+Update a payee status, only by **owner**
+
 Can't release payment to a disabled payee
 
 | name      | type    | description                        |
@@ -86,7 +88,7 @@ Withdraw ERC20 tokens to a receiver without shares, only by **owner**
 
 `releaseEth`
 
-Transfers available Ether of the contract to all \_payees based on their shares
+Transfers available Ether of the contract to all payees based on their shares
 
     No params
 
@@ -94,7 +96,7 @@ Transfers available Ether of the contract to all \_payees based on their shares
 
 `releaseErc20`
 
-Transfers available ERC20 token of the contract to all \_payees based on their shares
+Transfers available ERC20 token of the contract to all payees based on their shares
 
     No params
 
@@ -194,7 +196,9 @@ Getter for the amount of Ether already released to a payee
 
 `erc20Released`
 
-Getter for the amount of `token` tokens already released to a payee. `token` should be the address of an IERC20 contract
+Getter for the amount of `token` tokens already released to a payee
+
+ `token` is address of the IERC20 contract
 
 | name    | type    | description                       |
 | :------ | :------ | :-------------------------------- |
@@ -223,7 +227,9 @@ Getter for the amount of payee's releasable Ether
 
 `releasableErc20`
 
-Getter for the amount of payee's releasable `token` tokens. `token` should be the address of an IERC20 contract
+Getter for the amount of payee's releasable `token` tokens
+
+`token` is address of the IERC20 contract
 
 | name    | type    | description                       |
 | :------ | :------ | :-------------------------------- |
