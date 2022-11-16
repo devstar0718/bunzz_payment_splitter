@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("Test PaymentSpilitter", () => {
+describe("Test PaymentSplitter", () => {
   before(async () => {
     [owner, addr1, addr2, addr3, addr4, addr4, addr5, ...addrs] =
       await ethers.getSigners();
@@ -54,7 +54,7 @@ describe("Test PaymentSpilitter", () => {
 
       expect(await paymentSplitter.totalShares()).to.equal(
         ethers.utils.parseEther("1"),
-        "increate total shares"
+        "increase total shares"
       );
 
       await expect(
@@ -75,7 +75,7 @@ describe("Test PaymentSpilitter", () => {
 
       expect(await paymentSplitter.totalShares()).to.equal(
         ethers.utils.parseEther("0"),
-        "decreate total shares"
+        "decrease total shares"
       );
 
       const listPayees = await paymentSplitter.connect(owner).listOfPayees();
@@ -250,7 +250,7 @@ describe("Test PaymentSpilitter", () => {
           .connect(owner)
           .withdrawEth(addr1.address, ethers.utils.parseEther("1"))
       )
-        .to.emit(paymentSplitter, "EthPaymentWithdrawed")
+        .to.emit(paymentSplitter, "EthPaymentWithdrawn")
         .withArgs(addr1.address, ethers.utils.parseEther("1"));
       const _afterBal = await ethers.provider.getBalance(addr1.address);
       expect(_afterBal.sub(_beforeBal)).to.equal(ethers.utils.parseEther("1"));
@@ -304,7 +304,7 @@ describe("Test PaymentSpilitter", () => {
             ethers.utils.parseEther("1")
           )
       )
-        .to.emit(paymentSplitter, "ERC20PaymentWithdrawed")
+        .to.emit(paymentSplitter, "ERC20PaymentWithdrawn")
         .withArgs(
           usdtToken.address,
           addr1.address,
