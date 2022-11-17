@@ -17,5 +17,8 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "test": "npx hardhat test"
+  },
+  "devDependencies": {
+    "@defi-wonderland/smock": "^2.3.4"
   }
 }

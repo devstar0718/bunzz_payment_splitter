@@ -9,8 +9,11 @@ describe("Test PaymentSpilitter", () => {
     paymentSplitterFactory = await ethers.getContractFactory("PaymentSplitter");
     paymentSplitter = await paymentSplitterFactory.connect(owner).deploy();
 
-    usdtFactory = await ethers.getContractFactory("USDT");
-    usdtToken = await usdtFactory.connect(owner).deploy();
+    testFactory = await ethers.getContractFactory("TEST");
+    testToken = await testFactory
+      .connect(owner)
+      .deploy(ethers.utils.parseEther("10000000000000"));
+
   });
 
   describe("Check deployment", () => {
@@ -183,37 +186,37 @@ describe("Test PaymentSpilitter", () => {
 
     it("releaseEr20()", async () => {
       await expect(
-        paymentSplitter.connect(owner).releaseEr20(usdtToken.address)
+        paymentSplitter.connect(owner).releaseEr20(testToken.address)
       ).to.be.revertedWith("PaymentSplitter: account is not due payment");
 
-      await usdtToken
+      await testToken
         .connect(owner)
         .transfer(paymentSplitter.address, ethers.utils.parseEther("1"));
 
       await expect(
-        paymentSplitter.connect(owner).releaseEr20(usdtToken.address)
+        paymentSplitter.connect(owner).releaseEr20(testToken.address)
       )
         .to.emit(paymentSplitter, "ERC20PaymentReleased")
         .withArgs(
-          usdtToken.address,
+          testToken.address,
           addr1.address,
           ethers.utils.parseEther("0.5")
         )
         .to.emit(paymentSplitter, "ERC20PaymentReleased")
         .withArgs(
-          usdtToken.address,
+          testToken.address,
           addr1.address,
           ethers.utils.parseEther("0.5")
         );
 
       expect(
-        await paymentSplitter.erc20Released(usdtToken.address, addr1.address)
+        await paymentSplitter.erc20Released(testToken.address, addr1.address)
       ).to.equal(ethers.utils.parseEther("0.5"));
       expect(
-        await paymentSplitter.erc20Released(usdtToken.address, addr2.address)
+        await paymentSplitter.erc20Released(testToken.address, addr2.address)
       ).to.equal(ethers.utils.parseEther("0.5"));
       expect(
-        await paymentSplitter.totalErc20Released(usdtToken.address)
+        await paymentSplitter.totalERC20Released(testToken.address)
       ).to.equal(ethers.utils.parseEther("1"));
     });
 
@@ -259,12 +262,12 @@ describe("Test PaymentSpilitter", () => {
       ).to.equal(0);
     });
 
-    it("withdrawErc20(IERC20 token, address receiver, uint256 amount)", async () => {
+    it("withdrawERC20(IERC20 token, address receiver, uint256 amount)", async () => {
       await expect(
         paymentSplitter
           .connect(owner)
-          .withdrawErc20(
-            usdtToken.address,
+          .withdrawERC20(
+            testToken.address,
             ethers.constants.AddressZero,
             ethers.utils.parseEther("1")
           )
@@ -273,8 +276,8 @@ describe("Test PaymentSpilitter", () => {
       await expect(
         paymentSplitter
           .connect(owner)
-          .withdrawErc20(
-            usdtToken.address,
+          .withdrawERC20(
+            testToken.address,
             addr1.address,
             ethers.utils.parseEther("0")
           )
@@ -283,36 +286,36 @@ describe("Test PaymentSpilitter", () => {
       await expect(
         paymentSplitter
           .connect(owner)
-          .withdrawErc20(
-            usdtToken.address,
+          .withdrawERC20(
+            testToken.address,
             addr1.address,
             ethers.utils.parseEther("1")
           )
       ).to.be.revertedWith("PaymentSplitter: not enough balance");
 
-      await usdtToken
+      await testToken
         .connect(owner)
         .transfer(paymentSplitter.address, ethers.utils.parseEther("1"));
 
-      const _beforeBal = await usdtToken.balanceOf(addr1.address);
+      const _beforeBal = await testToken.balanceOf(addr1.address);
       await expect(
         paymentSplitter
           .connect(owner)
-          .withdrawErc20(
-            usdtToken.address,
+          .withdrawERC20(
+            testToken.address,
             addr1.address,
             ethers.utils.parseEther("1")
           )
       )
         .to.emit(paymentSplitter, "ERC20PaymentWithdrawed")
         .withArgs(
-          usdtToken.address,
+          testToken.address,
           addr1.address,
           ethers.utils.parseEther("1")
         );
-      const _afterBal = await usdtToken.balanceOf(addr1.address);
+      const _afterBal = await testToken.balanceOf(addr1.address);
       expect(_afterBal.sub(_beforeBal)).to.equal(ethers.utils.parseEther("1"));
-      expect(await usdtToken.balanceOf(paymentSplitter.address)).to.equal(0);
+      expect(await testToken.balanceOf(paymentSplitter.address)).to.equal(0);
     });
   });
 });

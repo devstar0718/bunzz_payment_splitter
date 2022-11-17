@@ -5,7 +5,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IPaymentSplitter.sol";
 import "./interfaces/IBunzz.sol";
@@ -15,14 +14,14 @@ import "./interfaces/IBunzz.sol";
  * @dev This contract allows to split Ether payments among a group of accounts. The sender does not need to be aware
  * that the Ether will be split in this way, since it is handled transparently by the contract.
  */
-contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
+contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     uint256 private _totalShares; // Total shares
 
     uint256 private _totalEthReleased; // Total released eth
-    mapping(IERC20 => uint256) private _totalErc20Released; // Total released erc20
+    mapping(IERC20 => uint256) private _totalERC20Released; // Total released erc20
 
     uint256 private _totalEthWithdrawed; // Total withdrawed eth
-    mapping(IERC20 => uint256) private _totalErc20Withdrawed; // Total withdrawed erc20
+    mapping(IERC20 => uint256) private _totalERC20Withdrawed; // Total withdrawed erc20
 
     bool private _onlyAfterRelease; // checking release flag
     uint256 private _releaseableAmount; // releaseable amount
@@ -57,7 +56,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     );
 
     modifier onlyAfterReleaseEth() {
-        require(_onlyAfterRelease != true);
+        require(!_onlyAfterRelease, "PaymentSplitter: releasing");
         _onlyAfterRelease = true;
         _releaseableAmount = address(this).balance;
         _;
@@ -66,14 +65,24 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         _onlyAfterRelease = false;
     }
 
-    modifier onlyAfterReleaseErc20(IERC20 token) {
-        require(_onlyAfterRelease != true);
+    modifier onlyAfterReleaseERC20(IERC20 token) {
+        require(!_onlyAfterRelease, "PaymentSplitter: releasing");
         _onlyAfterRelease = true;
         _releaseableAmount = token.balanceOf(address(this));
         _;
         // By storing the original value once again, a refund is triggered (see
         // https://eips.ethereum.org/EIPS/eip-2200)
         _onlyAfterRelease = false;
+    }
+
+    modifier onlyAfterRelease() {
+        require(!_onlyAfterRelease, "PaymentSplitter: releasing");
+        _;
+    }
+
+    modifier onlyPayee(address _account) {
+        require(isPayee(_account), "PaymentSplitter: account not added");
+        _;
     }
 
     constructor() {}
@@ -103,7 +112,11 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
      * @param _account The address of the payee to add.
      * @param _shares The number of shares owned by the payee.
      */
-    function addPayee(address _account, uint256 _shares) external onlyOwner {
+    function addPayee(address _account, uint256 _shares)
+        external
+        onlyOwner
+        onlyAfterRelease
+    {
         require(
             !isPayee(_account),
             "PaymentSplitter: account is already a payee"
@@ -125,9 +138,12 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
      * @dev Remove a payee from the contract.
      * @param _account The address of the payee to remove.
      */
-    function removePayee(address _account) external onlyOwner {
-        require(isPayee(_account), "PaymentSplitter: account not added");
-
+    function removePayee(address _account)
+        external
+        onlyOwner
+        onlyAfterRelease
+        onlyPayee(_account)
+    {
         _totalShares -= shares(_account);
         delete _payeeInfos[_account];
 
@@ -150,8 +166,9 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     function updatePayeeShares(address _account, uint256 _shares)
         external
         onlyOwner
+        onlyAfterRelease
+        onlyPayee(_account)
     {
-        require(isPayee(_account), "PaymentSplitter: account not added");
         require(
             _shares > 0,
             "PaymentSplitter: cannot update to 0, please remove the Payee instead"
@@ -175,9 +192,9 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     function updatePayeeStatus(address _account, bool _status)
         external
         onlyOwner
+        onlyAfterRelease
+        onlyPayee(_account)
     {
-        require(isPayee(_account), "PaymentSplitter: account not added");
-
         PayeeInfo storage payeeInfo = _payeeInfos[_account];
         bool _beforeStatus = payeeInfo.enabled;
         payeeInfo.enabled = _status;
@@ -189,6 +206,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
      * @dev Transfers available Ether of the contract to all _payees based on their shares
      */
     function releaseEth() external override onlyAfterReleaseEth {
+        _releaseableAmount = address(this).balance;
         for (uint256 i = 0; i < _payees.length; i++) {
             if (isEnabled(_payees[i])) {
                 releaseEth(payable(_payees[i]));
@@ -202,11 +220,11 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     function releaseEr20(IERC20 token)
         external
         override
-        onlyAfterReleaseErc20(token)
+        onlyAfterReleaseERC20(token)
     {
         for (uint256 i = 0; i < _payees.length; i++) {
             if (isEnabled(_payees[i])) {
-                releaseErc20(token, _payees[i]);
+                releaseERC20(token, _payees[i]);
             }
         }
     }
@@ -219,6 +237,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     function withdrawEth(address payable receiver, uint256 amount)
         external
         onlyOwner
+        onlyAfterRelease
     {
         require(
             receiver != address(0),
@@ -242,11 +261,11 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
      * @param receiver address The address which will receive the tokens
      * @param amount uint256 The amount of tokens to withdraw
      */
-    function withdrawErc20(
+    function withdrawERC20(
         IERC20 token,
         address receiver,
         uint256 amount
-    ) external onlyOwner {
+    ) external onlyOwner onlyAfterRelease {
         require(
             receiver != address(0),
             "PaymentSplitter: receiver is the zero address"
@@ -258,7 +277,7 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         );
 
         SafeERC20.safeTransfer(token, receiver, amount);
-        _totalErc20Withdrawed[token] += amount;
+        _totalERC20Withdrawed[token] += amount;
 
         emit ERC20PaymentWithdrawed(token, receiver, amount);
     }
@@ -273,13 +292,13 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     /**
      * @dev Getter for the total ERC20 released on the contract
      */
-    function totalErc20Released(IERC20 token)
+    function totalERC20Released(IERC20 token)
         external
         view
         onlyOwner
         returns (uint256)
     {
-        return _totalErc20Released[token];
+        return _totalERC20Released[token];
     }
 
     /**
@@ -292,13 +311,13 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
     /**
      * @dev Getter for the total ERC20 released on the contract
      */
-    function totalErc20Withdrawed(IERC20 token)
+    function totalERC20Withdrawed(IERC20 token)
         external
         view
         onlyOwner
         returns (uint256)
     {
-        return _totalErc20Withdrawed[token];
+        return _totalERC20Withdrawed[token];
     }
 
     function listOfPayees() external view onlyOwner returns (address[] memory) {
@@ -370,10 +389,9 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
         public
         view
         override
+        onlyPayee(account)
         returns (uint256)
     {
-        require(isPayee(account), "PaymentSplitter: account not added");
-
         uint256 _totalReleasableAmount = _onlyAfterRelease
             ? _releaseableAmount
             : address(this).balance;
@@ -391,14 +409,13 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
      * @param token IERC20 The address of the token contract
      * @param account address The address which will receive the tokens
      */
-    function releasableErc20(IERC20 token, address account)
+    function releasableERC20(IERC20 token, address account)
         public
         view
         override
+        onlyPayee(account)
         returns (uint256)
     {
-        require(isPayee(account), "PaymentSplitter: account not added");
-
         uint256 _totalReleasableAmount = _onlyAfterRelease
             ? _releaseableAmount
             : token.balanceOf(address(this));
@@ -433,15 +450,15 @@ contract PaymentSplitter is Context, Ownable, IPaymentSplitter, IBunzz {
      * @param token IERC20 The address of the token contract
      * @param account address The address which will receive the tokens
      */
-    function releaseErc20(IERC20 token, address account) private {
+    function releaseERC20(IERC20 token, address account) private {
         require(isEnabled(account), "PaymentSplitter: account not enabled");
 
-        uint256 payment = releasableErc20(token, account);
+        uint256 payment = releasableERC20(token, account);
 
         require(payment != 0, "PaymentSplitter: account is not due payment");
 
         _payeeInfos[account].erc20Released[token] += payment;
-        _totalErc20Released[token] += payment;
+        _totalERC20Released[token] += payment;
 
         SafeERC20.safeTransfer(token, account, payment);
         emit ERC20PaymentReleased(token, account, payment);

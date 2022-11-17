@@ -64,7 +64,7 @@ interface IPaymentSplitter {
      * @param token IERC20 The address of the token contract
      * @param account address The address which will receive the tokens
      */
-    function releasableErc20(IERC20 token, address account)
+    function releasableERC20(IERC20 token, address account)
         external
         view
         returns (uint256);
