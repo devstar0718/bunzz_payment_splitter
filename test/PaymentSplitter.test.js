@@ -33,7 +33,7 @@ describe("Test PaymentSpilitter", () => {
 
       await expect(paymentSplitter.connect(owner).setMaxPayeeCounter(10))
         .to.emit(paymentSplitter, "MaxPayeeConterUpdated")
-        .withArgs(30, 10);
+        .withArgs(5, 10);
 
       expect(await paymentSplitter.connect(owner).maxPayeeCounter()).to.equal(
         10
