@@ -76,7 +76,7 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     }
 
     constructor() {
-        _maxPayeeCounter = 30;
+        _maxPayeeCounter = 5;
     }
 
     /**
@@ -103,7 +103,11 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
      * @param _counter payee counter
      * @dev set _maxPayeeCounter
      **/
-    function setMaxPayeeCounter(uint256 _counter) external onlyOwner {
+    function setMaxPayeeCounter(uint256 _counter)
+        external
+        onlyOwner
+        onlyAfterRelease
+    {
         require(_counter > 0, "PaymentSplitter: counter is 0");
         require(_counter <= 30, "PaymentSplitter: max of counter is 30");
         uint256 _beforeMaxPayeeCounter = _maxPayeeCounter;
@@ -128,7 +132,7 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
         );
         require(_shares > 0, "PaymentSplitter: shares are 0");
         require(
-            _enabledPayeeCounter < _maxPayeeCounter,
+            payeeCount() < _maxPayeeCounter,
             "PaymentSplitter: over the max payee counter"
         );
 
@@ -155,10 +159,10 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
         onlyAfterRelease
         onlyPayee(_account)
     {
+        if (_payeeInfos[_account].enabled) _enabledPayeeCounter--;
+
         _totalShares -= shares(_account);
         delete _payeeInfos[_account];
-
-        _enabledPayeeCounter--;
 
         for (uint256 i = 0; i < _payees.length; i++) {
             if (_payees[i] == _account) {
@@ -213,15 +217,10 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
 
         require(
             _beforeStatus != _status,
-            "PaymentSplliter: status is the same before status"
+            "PaymentSplliter: status is the same with before status"
         );
 
         if (_status) {
-            require(
-                _enabledPayeeCounter < _maxPayeeCounter,
-                "PaymentSplitter: over the max payee counter"
-            );
-
             _enabledPayeeCounter++;
         } else {
             _enabledPayeeCounter--;

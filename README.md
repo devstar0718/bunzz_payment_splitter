@@ -86,6 +86,18 @@ Withdraw ERC20 tokens to a receiver without shares, only by **owner**
 
 <br>
 
+`setMaxPayeeCounter`
+
+Set max count of payees, only by **owner**
+
+Owner can't add payee more than max counter(which should be less than 30)
+
+| name      | type   | description              |
+| :-------- | :----- | :----------------------- |
+| \_counter | IERC20 | Max value of payee count |
+
+<br>
+
 `releaseEth`
 
 Transfers available Ether of the contract to all payees based on their shares
@@ -146,6 +158,14 @@ Getter for the list of payee, only by **owner**
 
 <br>
 
+`maxPayeeCounter`
+
+Getter for the max count of payees, only by **owner**
+
+    No params
+
+<br>
+
 `totalShares`
 
 Getter for total amount of shares on the contract
@@ -198,7 +218,7 @@ Getter for the amount of Ether already released to a payee
 
 Getter for the amount of `token` tokens already released to a payee
 
- `token` is address of the IERC20 contract
+`token` is address of the IERC20 contract
 
 | name    | type    | description                       |
 | :------ | :------ | :-------------------------------- |
