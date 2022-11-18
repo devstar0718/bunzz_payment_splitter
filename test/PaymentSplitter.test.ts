@@ -21,7 +21,7 @@ describe("Test PaymentSpilitter", () => {
     paymentSplitterFactory = await ethers.getContractFactory("PaymentSplitter");
     paymentSplitter = await paymentSplitterFactory.connect(owner).deploy();
 
-    testFactory = await ethers.getContractFactory("TEST");
+    testFactory = await ethers.getContractFactory("MockToken");
     testToken = await testFactory.connect(owner).deploy(ethers.utils.parseEther("10000000000000"));
   });
 
