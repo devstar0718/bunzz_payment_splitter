@@ -82,5 +82,5 @@ interface IPaymentSplitter {
     /**
      * @dev Transfers available `token` tokens of the contract to all payees based on their shares
      */
-    function releaseEr20(IERC20 token) external;
+    function releaseERC20(IERC20 token) external;
 }

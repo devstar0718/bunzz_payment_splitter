@@ -185,7 +185,7 @@ describe("Test PaymentSpilitter", () => {
 
     it("releaseERC20()", async () => {
       await expect(
-        paymentSplitter.connect(owner).releaseEr20(testToken.address)
+        paymentSplitter.connect(owner).releaseERC20(testToken.address)
       ).to.be.revertedWith("PaymentSplitter: account is not due payment");
 
       await testToken
@@ -193,7 +193,7 @@ describe("Test PaymentSpilitter", () => {
         .transfer(paymentSplitter.address, ethers.utils.parseEther("1"));
 
       await expect(
-        paymentSplitter.connect(owner).releaseEr20(testToken.address)
+        paymentSplitter.connect(owner).releaseERC20(testToken.address)
       )
         .to.emit(paymentSplitter, "ERC20PaymentReleased")
         .withArgs(
