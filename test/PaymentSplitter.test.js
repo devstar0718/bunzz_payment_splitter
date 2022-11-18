@@ -22,6 +22,24 @@ describe("Test PaymentSpilitter", () => {
   });
 
   describe("Check functions", () => {
+    it("setMaxPayeeCounter(uint256 _counter)", async () => {
+      await expect(
+        paymentSplitter.connect(owner).setMaxPayeeCounter(0)
+      ).to.be.revertedWith("PaymentSplitter: counter is 0");
+
+      await expect(
+        paymentSplitter.connect(owner).setMaxPayeeCounter(31)
+      ).to.be.revertedWith("PaymentSplitter: max of counter is 30");
+
+      await expect(paymentSplitter.connect(owner).setMaxPayeeCounter(10))
+        .to.emit(paymentSplitter, "MaxPayeeConterUpdated")
+        .withArgs(30, 10);
+
+      expect(await paymentSplitter.connect(owner).maxPayeeCounter()).to.equal(
+        10
+      );
+    });
+
     it("addPayee(address _account, uint256 _shares)", async () => {
       await expect(
         paymentSplitter
@@ -153,6 +171,14 @@ describe("Test PaymentSpilitter", () => {
     });
 
     it("releaseEth()", async () => {
+      await paymentSplitter.connect(owner).removePayee(addr1.address);
+      await expect(
+        paymentSplitter.connect(owner).releaseEth()
+      ).to.be.revertedWith("PaymentSplitter: empty payee");
+      await paymentSplitter
+        .connect(owner)
+        .addPayee(addr1.address, ethers.utils.parseEther("2"));
+
       await expect(
         paymentSplitter.connect(owner).releaseEth()
       ).to.be.revertedWith("PaymentSplitter: account is not due payment");
@@ -184,6 +210,18 @@ describe("Test PaymentSpilitter", () => {
     });
 
     it("releaseERC20()", async () => {
+      await paymentSplitter.connect(owner).removePayee(addr1.address);
+      await paymentSplitter.connect(owner).removePayee(addr2.address);
+      await expect(
+        paymentSplitter.connect(owner).releaseERC20(testToken.address)
+      ).to.be.revertedWith("PaymentSplitter: empty payee");
+      await paymentSplitter
+        .connect(owner)
+        .addPayee(addr1.address, ethers.utils.parseEther("2"));
+      await paymentSplitter
+        .connect(owner)
+        .addPayee(addr2.address, ethers.utils.parseEther("2"));
+
       await expect(
         paymentSplitter.connect(owner).releaseERC20(testToken.address)
       ).to.be.revertedWith("PaymentSplitter: account is not due payment");

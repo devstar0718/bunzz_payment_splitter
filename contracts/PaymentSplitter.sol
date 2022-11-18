@@ -38,7 +38,10 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     mapping(address => PayeeInfo) private _payeeInfos; // Payee infos
 
     address[] private _payees; // _payees list
+    uint256 private _enabledPayeeCounter; // enabled payee counter
+    uint256 private _maxPayeeCounter; // max enabled payee counter
 
+    event MaxPayeeConterUpdated(uint256 prev, uint256 next);
     event PayeeAdded(address account, uint256 shares);
     event PayeeRemoved(address account);
     event PayeeUpdatedShares(
@@ -55,28 +58,15 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
         uint256 amount
     );
 
-    modifier onlyAfterReleaseEth() {
-        require(!_onlyAfterRelease, "PaymentSplitter: releasing");
-        _onlyAfterRelease = true;
-        _releaseableAmount = address(this).balance;
-        _;
-        // By storing the original value once again, a refund is triggered (see
-        // https://eips.ethereum.org/EIPS/eip-2200)
-        _onlyAfterRelease = false;
-    }
-
-    modifier onlyAfterReleaseERC20(IERC20 token) {
-        require(!_onlyAfterRelease, "PaymentSplitter: releasing");
-        _onlyAfterRelease = true;
-        _releaseableAmount = token.balanceOf(address(this));
-        _;
-        // By storing the original value once again, a refund is triggered (see
-        // https://eips.ethereum.org/EIPS/eip-2200)
-        _onlyAfterRelease = false;
-    }
-
     modifier onlyAfterRelease() {
         require(!_onlyAfterRelease, "PaymentSplitter: releasing");
+        _onlyAfterRelease = true;
+        _;
+        _onlyAfterRelease = false;
+    }
+
+    modifier notEmptyPayee() {
+        require(_enabledPayeeCounter > 0, "PaymentSplitter: empty payee");
         _;
     }
 
@@ -85,7 +75,9 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
         _;
     }
 
-    constructor() {}
+    constructor() {
+        _maxPayeeCounter = 30;
+    }
 
     /**
      * @dev receive ETH when msg.data is empty
@@ -108,6 +100,19 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     }
 
     /**
+     * @param _counter payee counter
+     * @dev set _maxPayeeCounter
+     **/
+    function setMaxPayeeCounter(uint256 _counter) external onlyOwner {
+        require(_counter > 0, "PaymentSplitter: counter is 0");
+        require(_counter <= 30, "PaymentSplitter: max of counter is 30");
+        uint256 _beforeMaxPayeeCounter = _maxPayeeCounter;
+        _maxPayeeCounter = _counter;
+
+        emit MaxPayeeConterUpdated(_beforeMaxPayeeCounter, _maxPayeeCounter);
+    }
+
+    /**
      * @dev Add a new payee to the contract.
      * @param _account The address of the payee to add.
      * @param _shares The number of shares owned by the payee.
@@ -122,6 +127,10 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
             "PaymentSplitter: account is already a payee"
         );
         require(_shares > 0, "PaymentSplitter: shares are 0");
+        require(
+            _enabledPayeeCounter < _maxPayeeCounter,
+            "PaymentSplitter: over the max payee counter"
+        );
 
         PayeeInfo storage payeeInfo = _payeeInfos[_account];
         payeeInfo.shares = _shares;
@@ -130,6 +139,8 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
         _payees.push(_account);
 
         _totalShares += _shares;
+
+        _enabledPayeeCounter++;
 
         emit PayeeAdded(_account, _shares);
     }
@@ -146,6 +157,8 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     {
         _totalShares -= shares(_account);
         delete _payeeInfos[_account];
+
+        _enabledPayeeCounter--;
 
         for (uint256 i = 0; i < _payees.length; i++) {
             if (_payees[i] == _account) {
@@ -197,6 +210,23 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     {
         PayeeInfo storage payeeInfo = _payeeInfos[_account];
         bool _beforeStatus = payeeInfo.enabled;
+
+        require(
+            _beforeStatus != _status,
+            "PaymentSplliter: status is the same before status"
+        );
+
+        if (_status) {
+            require(
+                _enabledPayeeCounter < _maxPayeeCounter,
+                "PaymentSplitter: over the max payee counter"
+            );
+
+            _enabledPayeeCounter++;
+        } else {
+            _enabledPayeeCounter--;
+        }
+
         payeeInfo.enabled = _status;
 
         emit PayeeUpdatedStatus(_account, _beforeStatus, _status);
@@ -205,8 +235,9 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     /**
      * @dev Transfers available Ether of the contract to all _payees based on their shares
      */
-    function releaseEth() external override onlyAfterReleaseEth {
+    function releaseEth() external override onlyAfterRelease notEmptyPayee {
         _releaseableAmount = address(this).balance;
+
         for (uint256 i = 0; i < _payees.length; i++) {
             if (isEnabled(_payees[i])) {
                 releaseEth(payable(_payees[i]));
@@ -220,8 +251,11 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     function releaseERC20(IERC20 token)
         external
         override
-        onlyAfterReleaseERC20(token)
+        onlyAfterRelease
+        notEmptyPayee
     {
+        _releaseableAmount = token.balanceOf(address(this));
+
         for (uint256 i = 0; i < _payees.length; i++) {
             if (isEnabled(_payees[i])) {
                 releaseERC20(token, _payees[i]);
@@ -322,6 +356,10 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
 
     function listOfPayees() external view onlyOwner returns (address[] memory) {
         return _payees;
+    }
+
+    function maxPayeeCounter() external view onlyOwner returns (uint256) {
+        return _maxPayeeCounter;
     }
 
     /**
