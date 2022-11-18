@@ -1,4 +1,11 @@
 node_modules
-artifacts
+
+#Hardhat files
 cache
-contracts/.deps
+artifacts
+factories
+typechain-types
+typechain-types/*
+
+
+
