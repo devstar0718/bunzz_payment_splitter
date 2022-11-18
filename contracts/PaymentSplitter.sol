@@ -217,7 +217,7 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     /**
      * @dev Transfers available `token` tokens of the contract to all _payees based on their shares
      */
-    function releaseEr20(IERC20 token)
+    function releaseERC20(IERC20 token)
         external
         override
         onlyAfterReleaseERC20(token)

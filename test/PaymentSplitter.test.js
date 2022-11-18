@@ -183,7 +183,7 @@ describe("Test PaymentSpilitter", () => {
       );
     });
 
-    it("releaseEr20()", async () => {
+    it("releaseERC20()", async () => {
       await expect(
         paymentSplitter.connect(owner).releaseEr20(testToken.address)
       ).to.be.revertedWith("PaymentSplitter: account is not due payment");
