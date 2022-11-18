@@ -13,7 +13,6 @@ describe("Test PaymentSpilitter", () => {
     testToken = await testFactory
       .connect(owner)
       .deploy(ethers.utils.parseEther("10000000000000"));
-
   });
 
   describe("Check deployment", () => {
@@ -253,7 +252,7 @@ describe("Test PaymentSpilitter", () => {
           .connect(owner)
           .withdrawEth(addr1.address, ethers.utils.parseEther("1"))
       )
-        .to.emit(paymentSplitter, "EthPaymentWithdrawed")
+        .to.emit(paymentSplitter, "EthPaymentWithdrawn")
         .withArgs(addr1.address, ethers.utils.parseEther("1"));
       const _afterBal = await ethers.provider.getBalance(addr1.address);
       expect(_afterBal.sub(_beforeBal)).to.equal(ethers.utils.parseEther("1"));
@@ -307,7 +306,7 @@ describe("Test PaymentSpilitter", () => {
             ethers.utils.parseEther("1")
           )
       )
-        .to.emit(paymentSplitter, "ERC20PaymentWithdrawed")
+        .to.emit(paymentSplitter, "ERC20PaymentWithdrawn")
         .withArgs(
           testToken.address,
           addr1.address,

@@ -20,8 +20,8 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     uint256 private _totalEthReleased; // Total released eth
     mapping(IERC20 => uint256) private _totalERC20Released; // Total released erc20
 
-    uint256 private _totalEthWithdrawed; // Total withdrawed eth
-    mapping(IERC20 => uint256) private _totalERC20Withdrawed; // Total withdrawed erc20
+    uint256 private _totalEthWithdrawn; // Total withdrawn eth
+    mapping(IERC20 => uint256) private _totalERC20Withdrawn; // Total withdrawn erc20
 
     bool private _onlyAfterRelease; // checking release flag
     uint256 private _releaseableAmount; // releaseable amount
@@ -48,8 +48,8 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     );
     event PayeeUpdatedStatus(address account, bool beforeStatus, bool status);
 
-    event EthPaymentWithdrawed(address to, uint256 amount);
-    event ERC20PaymentWithdrawed(
+    event EthPaymentWithdrawn(address to, uint256 amount);
+    event ERC20PaymentWithdrawn(
         IERC20 indexed token,
         address to,
         uint256 amount
@@ -88,7 +88,7 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     constructor() {}
 
     /**
-     * @dev receive BNB when msg.data is empty
+     * @dev receive ETH when msg.data is empty
      **/
     receive() external payable {}
 
@@ -250,9 +250,9 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
         );
 
         Address.sendValue(receiver, amount);
-        _totalEthWithdrawed += amount;
+        _totalEthWithdrawn += amount;
 
-        emit EthPaymentWithdrawed(receiver, amount);
+        emit EthPaymentWithdrawn(receiver, amount);
     }
 
     /**
@@ -277,9 +277,9 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
         );
 
         SafeERC20.safeTransfer(token, receiver, amount);
-        _totalERC20Withdrawed[token] += amount;
+        _totalERC20Withdrawn[token] += amount;
 
-        emit ERC20PaymentWithdrawed(token, receiver, amount);
+        emit ERC20PaymentWithdrawn(token, receiver, amount);
     }
 
     /**
@@ -302,22 +302,22 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     }
 
     /**
-     * @dev Getter for the total ETH withdrawed on the contract
+     * @dev Getter for the total ETH withdrawn on the contract
      */
-    function totalEthWithdrawed() external view onlyOwner returns (uint256) {
-        return _totalEthWithdrawed;
+    function totalEthWithdrawn() external view onlyOwner returns (uint256) {
+        return _totalEthWithdrawn;
     }
 
     /**
      * @dev Getter for the total ERC20 released on the contract
      */
-    function totalERC20Withdrawed(IERC20 token)
+    function totalERC20Withdrawn(IERC20 token)
         external
         view
         onlyOwner
         returns (uint256)
     {
-        return _totalERC20Withdrawed[token];
+        return _totalERC20Withdrawn[token];
     }
 
     function listOfPayees() external view onlyOwner returns (address[] memory) {
