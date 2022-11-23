@@ -14,7 +14,7 @@ let paymentSplitter: Contract;
 let testFactory: ContractFactory;
 let testToken: Contract;
 
-describe("Test PaymentSpilitter", () => {
+describe("Test PaymentSplitter", () => {
   before(async () => {
     [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
 
