@@ -37,12 +37,12 @@ describe("Test PaymentSplitter", () => {
         "PaymentSplitter: counter is 0",
       );
 
-      await expect(paymentSplitter.connect(owner).setMaxPayeeCounter(31)).to.be.revertedWith(
-        "PaymentSplitter: max of counter is 30",
+      await expect(paymentSplitter.connect(owner).setMaxPayeeCounter(11)).to.be.revertedWith(
+        "PaymentSplitter: max of counter is 10",
       );
 
       await expect(paymentSplitter.connect(owner).setMaxPayeeCounter(10))
-        .to.emit(paymentSplitter, "MaxPayeeConterUpdated")
+        .to.emit(paymentSplitter, "MaxPayeeCounterUpdated")
         .withArgs(5, 10);
 
       expect(await paymentSplitter.connect(owner).maxPayeeCounter()).to.equal(10);
@@ -81,7 +81,7 @@ describe("Test PaymentSplitter", () => {
         .to.emit(paymentSplitter, "PayeeRemoved")
         .withArgs(addr1.address);
 
-      expect(await paymentSplitter.totalShares()).to.equal(ethers.utils.parseEther("0"), "decreate total shares");
+      expect(await paymentSplitter.totalShares()).to.equal(ethers.utils.parseEther("0"), "decrease total shares");
 
       const listPayees = await paymentSplitter.connect(owner).listOfPayees();
       expect(listPayees.length).to.equal(0, "remove payee from payee list");

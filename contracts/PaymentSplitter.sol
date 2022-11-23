@@ -41,7 +41,7 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     uint256 private _enabledPayeeCounter; // enabled payee counter
     uint256 private _maxPayeeCounter; // max enabled payee counter
 
-    event MaxPayeeConterUpdated(uint256 prev, uint256 next);
+    event MaxPayeeCounterUpdated(uint256 prev, uint256 next);
     event PayeeAdded(address account, uint256 shares);
     event PayeeRemoved(address account);
     event PayeeUpdatedShares(
@@ -109,11 +109,11 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
         onlyAfterRelease
     {
         require(_counter > 0, "PaymentSplitter: counter is 0");
-        require(_counter <= 30, "PaymentSplitter: max of counter is 30");
+        require(_counter <= 10, "PaymentSplitter: max of counter is 10");
         uint256 _beforeMaxPayeeCounter = _maxPayeeCounter;
         _maxPayeeCounter = _counter;
 
-        emit MaxPayeeConterUpdated(_beforeMaxPayeeCounter, _maxPayeeCounter);
+        emit MaxPayeeCounterUpdated(_beforeMaxPayeeCounter, _maxPayeeCounter);
     }
 
     /**

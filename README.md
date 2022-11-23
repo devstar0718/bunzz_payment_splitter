@@ -90,7 +90,7 @@ Withdraw ERC20 tokens to a receiver without shares, only by **owner**
 
 Set max count of payees, only by **owner**
 
-Owner can't add payee more than max counter(which should be less than 30)
+Owner can't add payee more than max counter(which should be less than 10)
 
 | name      | type   | description              |
 | :-------- | :----- | :----------------------- |
