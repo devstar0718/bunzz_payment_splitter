@@ -7,10 +7,10 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IPaymentSplitter {
-    event EthPaymentReleased(address to, uint256 amount);
+    event EthPaymentReleased(address account, uint256 amount);
     event ERC20PaymentReleased(
         IERC20 indexed token,
-        address to,
+        address account,
         uint256 amount
     );
 

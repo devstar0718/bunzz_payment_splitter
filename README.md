@@ -4,6 +4,8 @@
 
 This connects with other contract and used for sharing accumulated tokens on the contract with shared accounts.
 
+The number of shared accounts is limited up to 10 and can be used for sharing revenues with limited number of accounts. (NFT Mint, Launch Token, ...)
+
 ## How to use
 
 1. Add payee with share point on the contract
@@ -255,5 +257,98 @@ Getter for the amount of payee's releasable `token` tokens
 | :------ | :------ | :-------------------------------- |
 | token   | IERC20  | The address of the token contract |
 | account | address | The address of the payee to query |
+
+<br>
+
+## Events
+
+`PayeeAdded`
+
+Emitted when a new payee is added
+
+| name    | type    | description                             |
+| :------ | :------ | :-------------------------------------- |
+| account | address | The address of the payee to add         |
+| shares  | uint256 | The number of shares owned by the payee |
+
+<br>
+
+`PayeeRemoved`
+
+Emitted when a payee is removed
+
+| name    | type    | description                        |
+| :------ | :------ | :--------------------------------- |
+| account | address | The address of the payee to remove |
+
+<br>
+
+`PayeeUpdatedShares`
+
+Emitted when a payee's shares are updated
+
+| name         | type    | description                                  |
+| :----------- | :------ | :------------------------------------------- |
+| account      | address | The address of the payee to update           |
+| beforeShares | uint256 | Previous number of shares owned by the payee |
+| shares       | uint256 | The number of shares owned by the payee      |
+
+<br>
+
+`PayeeUpdatedStatus`
+
+Emitted when a payee's status is updated
+
+| name         | type    | description                        |
+| :----------- | :------ | :--------------------------------- |
+| account      | address | The address of the payee to update |
+| beforeStatus | bool    | Previous status of the payee       |
+| status       | bool    | The new status of the payee        |
+
+<br>
+
+`EthPaymentReleased`
+
+Emitted when Ether is released to a payee
+
+| name    | type    | description                             |
+| :------ | :------ | :-------------------------------------- |
+| account | address | The address of the payee to release to  |
+| amount  | uint256 | The amount of Ether released to the pay |
+
+<br>
+
+`ERC20PaymentReleased`
+
+Emitted when `token` tokens are released to a payee
+
+| name    | type    | description                             |
+| :------ | :------ | :-------------------------------------- |
+| token   | IERC20  | The address of the token contract       |
+| account | address | The address of the payee to release to  |
+| amount  | uint256 | The amount of Ether released to the pay |
+
+<br>
+
+`EthPaymentWithdrawn`
+
+Emitted when Ether is withdrawn from the contract
+
+| name    | type    | description                             |
+| :------ | :------ | :-------------------------------------- |
+| account | address | The address of the payee to withdraw to |
+| amount  | uint256 | The amount of Ether withdrawn from the  |
+
+<br>
+
+`ERC20PaymentWithdrawn`
+
+Emitted when `token` tokens are withdrawn from the contract
+
+| name    | type    | description                             |
+| :------ | :------ | :-------------------------------------- |
+| token   | IERC20  | The address of the token contract       |
+| account | address | The address of the payee to withdraw to |
+| amount  | uint256 | The amount of tokens withdrawn from the |
 
 <br>

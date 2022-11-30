@@ -51,10 +51,10 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
     );
     event PayeeUpdatedStatus(address account, bool beforeStatus, bool status);
 
-    event EthPaymentWithdrawn(address to, uint256 amount);
+    event EthPaymentWithdrawn(address account, uint256 amount);
     event ERC20PaymentWithdrawn(
         IERC20 indexed token,
-        address to,
+        address account,
         uint256 amount
     );
 
