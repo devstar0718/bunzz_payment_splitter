@@ -9,10 +9,24 @@ The number of shared accounts is limited up to 10 and can be used for sharing re
 ## How to use
 
 1. Add payee with share point on the contract
-2. Send tokens to the contract
-3. Release tokens to all payees based on their shares
-4. Withdraw specific amount of tokens to a receiver without shares (only by owner)
-5. All ERC20 and native token on the contract can be delivered
+2. Connect with other contracts which accumulates tokens (both ERC20 and native token) itself.
+3. Release tokens to payees based on their shares
+
+## Usage
+
+In most cases, the contract accumulates tokens itself and then releases them to payees. 
+
+*example:*
+
+1. Token Launch contract is getting fee from the transaction(sell, buy, transfer, ...)
+2. DEFI contract is getting the fee from user's deposit and stake.
+3. NFT Mint contract has some minting price and the contract is getting tokens from the minting transaction.
+4. NFT Marketplace contract is getting fee from the tradings(sell, buy, transfer, ...)\
+... 
+
+For above cases, the contracts need to have functions to withdraw the accumulated tokens or release them to payees with shares.
+
+Using PaymentSplitter, the above contracts doesn't need to have those functions, just connect with PaymentSplitter and add payees with shares and release it to the payees.
 
 ## Functions
 
