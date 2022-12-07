@@ -7,14 +7,13 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IPaymentSplitter.sol";
-import "./interfaces/IBunzz.sol";
 
 /**
  * @title PaymentSplitter
  * @dev This contract allows to split Ether payments among a group of accounts. The sender does not need to be aware
  * that the Ether will be split in this way, since it is handled transparently by the contract.
  */
-contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
+contract PaymentSplitter is Ownable, IPaymentSplitter{
     uint256 private _totalShares; // Total shares
 
     uint256 private _totalEthReleased; // Total released eth
@@ -25,8 +24,6 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
 
     bool private _onlyAfterRelease; // checking release flag
     uint256 private _releaseableAmount; // releaseable amount
-
-    address public paymentContract;
 
     struct PayeeInfo {
         uint256 shares; // Shares assigned to the payee
@@ -83,14 +80,6 @@ contract PaymentSplitter is Ownable, IPaymentSplitter, IBunzz {
      * @dev receive ETH when msg.data is empty
      **/
     receive() external payable {}
-
-    function connectToOtherContracts(address[] calldata contracts)
-        external
-        override
-        onlyOwner
-    {
-        paymentContract = contracts[0];
-    }
 
     /**
      * @dev Getter for the amount of shares held by an account.
