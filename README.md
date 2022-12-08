@@ -15,15 +15,15 @@ The number of shared accounts is limited up to 10 and can be used for sharing re
 
 ## Usage
 
-In most cases, the contract accumulates tokens itself and then releases them to payees. 
+In most cases, the contract accumulates tokens itself and then releases them to payees.
 
-*example:*
+_example:_
 
 1. Token Launch contract is getting fee from the transaction(sell, buy, transfer, ...)
 2. DEFI contract is getting the fee from user's deposit and stake.
 3. NFT Mint contract has some minting price and the contract is getting tokens from the minting transaction.
 4. NFT Marketplace contract is getting fee from the tradings(sell, buy, transfer, ...)\
-... 
+   ...
 
 For above cases, the contracts need to have functions to withdraw the accumulated tokens or release them to payees with shares.
 
@@ -117,7 +117,7 @@ Owner can't add payee more than max counter(which should be less than 10)
 
 `releaseEth`
 
-Transfers available Ether of the contract to all payees based on their shares
+Transfers available ETH of the contract to all payees based on their shares
 
     No params
 
@@ -135,7 +135,7 @@ Transfers available ERC20 token of the contract to all payees based on their sha
 
 `totalEthReleased`
 
-Getter for the total ETH released on the contract, only by **owner**
+Getter for the total ETH released on the contract
 
     No Params
 
@@ -143,7 +143,7 @@ Getter for the total ETH released on the contract, only by **owner**
 
 `totalErc20Released`
 
-Getter for the total ERC20 released on the contract, only by **owner**
+Getter for the total ERC20 released on the contract
 
 | name  | type   | description                       |
 | :---- | :----- | :-------------------------------- |
@@ -153,7 +153,7 @@ Getter for the total ERC20 released on the contract, only by **owner**
 
 `totalEthWithdrawn`
 
-Getter for the total ETH withdrawn on the contract, only by **owner**
+Getter for the total ETH withdrawn on the contract
 
     No params
 
@@ -161,7 +161,7 @@ Getter for the total ETH withdrawn on the contract, only by **owner**
 
 `totalErc20Withdrawn`
 
-Getter for the total ERC20 released on the contract, only by **owner**
+Getter for the total ERC20 released on the contract
 
     No params
 
@@ -169,7 +169,7 @@ Getter for the total ERC20 released on the contract, only by **owner**
 
 `listOfPayees`
 
-Getter for the list of payee, only by **owner**
+Getter for the list of payee
 
     No params
 
@@ -177,7 +177,7 @@ Getter for the list of payee, only by **owner**
 
 `maxPayeeCounter`
 
-Getter for the max count of payees, only by **owner**
+Getter for the max count of payees
 
     No params
 
@@ -223,7 +223,7 @@ Getter for a payee is exists or not
 
 `ethReleased`
 
-Getter for the amount of Ether already released to a payee
+Getter for the amount of ETH already released to a payee
 
 | name    | type    | description   |
 | :------ | :------ | :------------ |
@@ -254,7 +254,7 @@ Getter for number of the payee address
 
 `releasableEth`
 
-Getter for the amount of payee's releasable Ether
+Getter for the amount of payee's releasable ETH
 
 | name    | type    | description                       |
 | :------ | :------ | :-------------------------------- |
@@ -324,12 +324,12 @@ Emitted when a payee's status is updated
 
 `EthPaymentReleased`
 
-Emitted when Ether is released to a payee
+Emitted when ETH is released to a payee
 
-| name    | type    | description                             |
-| :------ | :------ | :-------------------------------------- |
-| account | address | The address of the payee to release to  |
-| amount  | uint256 | The amount of Ether released to the pay |
+| name    | type    | description                            |
+| :------ | :------ | :------------------------------------- |
+| account | address | The address of the payee to release to |
+| amount  | uint256 | The amount of ETH released to the pay  |
 
 <br>
 
@@ -337,22 +337,22 @@ Emitted when Ether is released to a payee
 
 Emitted when `token` tokens are released to a payee
 
-| name    | type    | description                             |
-| :------ | :------ | :-------------------------------------- |
-| token   | IERC20  | The address of the token contract       |
-| account | address | The address of the payee to release to  |
-| amount  | uint256 | The amount of Ether released to the pay |
+| name    | type    | description                            |
+| :------ | :------ | :------------------------------------- |
+| token   | IERC20  | The address of the token contract      |
+| account | address | The address of the payee to release to |
+| amount  | uint256 | The amount of ETH released to the pay  |
 
 <br>
 
 `EthPaymentWithdrawn`
 
-Emitted when Ether is withdrawn from the contract
+Emitted when ETH is withdrawn from the contract
 
 | name    | type    | description                             |
 | :------ | :------ | :-------------------------------------- |
 | account | address | The address of the payee to withdraw to |
-| amount  | uint256 | The amount of Ether withdrawn from the  |
+| amount  | uint256 | The amount of ETH withdrawn from the    |
 
 <br>
 
@@ -367,3 +367,12 @@ Emitted when `token` tokens are withdrawn from the contract
 | amount  | uint256 | The amount of tokens withdrawn from the |
 
 <br>
+
+`MaxPayeeCounterUpdated`
+
+Emitted when max counter of payee is updated
+
+| name | type    | description                   |
+| :--- | :------ | :---------------------------- |
+| prev | uint256 | Previous max counter of payee |
+| next | uint256 | The new max counter of payee  |

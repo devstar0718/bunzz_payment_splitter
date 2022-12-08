@@ -13,7 +13,7 @@ import "./interfaces/IPaymentSplitter.sol";
  * @dev This contract allows to split Ether payments among a group of accounts. The sender does not need to be aware
  * that the Ether will be split in this way, since it is handled transparently by the contract.
  */
-contract PaymentSplitter is Ownable, IPaymentSplitter{
+contract PaymentSplitter is Ownable, IPaymentSplitter {
     uint256 private _totalShares; // Total shares
 
     uint256 private _totalEthReleased; // Total released eth
@@ -307,7 +307,7 @@ contract PaymentSplitter is Ownable, IPaymentSplitter{
     /**
      * @dev Getter for the total ETH released on the contract
      */
-    function totalEthReleased() external view onlyOwner returns (uint256) {
+    function totalEthReleased() external view override returns (uint256) {
         return _totalEthReleased;
     }
 
@@ -317,7 +317,7 @@ contract PaymentSplitter is Ownable, IPaymentSplitter{
     function totalERC20Released(IERC20 token)
         external
         view
-        onlyOwner
+        override
         returns (uint256)
     {
         return _totalERC20Released[token];
@@ -326,7 +326,7 @@ contract PaymentSplitter is Ownable, IPaymentSplitter{
     /**
      * @dev Getter for the total ETH withdrawn on the contract
      */
-    function totalEthWithdrawn() external view onlyOwner returns (uint256) {
+    function totalEthWithdrawn() external view override returns (uint256) {
         return _totalEthWithdrawn;
     }
 
@@ -336,17 +336,17 @@ contract PaymentSplitter is Ownable, IPaymentSplitter{
     function totalERC20Withdrawn(IERC20 token)
         external
         view
-        onlyOwner
+        override
         returns (uint256)
     {
         return _totalERC20Withdrawn[token];
     }
 
-    function listOfPayees() external view onlyOwner returns (address[] memory) {
+    function listOfPayees() external view override returns (address[] memory) {
         return _payees;
     }
 
-    function maxPayeeCounter() external view onlyOwner returns (uint256) {
+    function maxPayeeCounter() external view override returns (uint256) {
         return _maxPayeeCounter;
     }
 

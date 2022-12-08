@@ -83,4 +83,16 @@ interface IPaymentSplitter {
      * @dev Transfers available `token` tokens of the contract to all payees based on their shares
      */
     function releaseERC20(IERC20 token) external;
+
+    function totalEthReleased() external view returns (uint256);
+
+    function totalERC20Released(IERC20 token) external view returns (uint256);
+
+    function totalEthWithdrawn() external view returns (uint256);
+
+    function totalERC20Withdrawn(IERC20 token) external view returns (uint256);
+
+    function listOfPayees() external view returns (address[] memory);
+
+    function maxPayeeCounter() external view returns (uint256);
 }
