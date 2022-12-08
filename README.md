@@ -91,7 +91,7 @@ Withdraw Eth to a receiver without shares, only by **owner**
 
 <br>
 
-`withdrawErc20`
+`withdrawERC20`
 
 Withdraw ERC20 tokens to a receiver without shares, only by **owner**
 
@@ -123,7 +123,7 @@ Transfers available ETH of the contract to all payees based on their shares
 
 <br>
 
-`releaseErc20`
+`releaseERC20`
 
 Transfers available ERC20 token of the contract to all payees based on their shares
 
@@ -141,7 +141,7 @@ Getter for the total ETH released on the contract
 
 <br>
 
-`totalErc20Released`
+`totalERC20Released`
 
 Getter for the total ERC20 released on the contract
 
@@ -159,7 +159,7 @@ Getter for the total ETH withdrawn on the contract
 
 <br>
 
-`totalErc20Withdrawn`
+`totalERC20Withdrawn`
 
 Getter for the total ERC20 released on the contract
 
@@ -262,7 +262,7 @@ Getter for the amount of payee's releasable ETH
 
 <br>
 
-`releasableErc20`
+`releasableERC20`
 
 Getter for the amount of payee's releasable `token` tokens
 
