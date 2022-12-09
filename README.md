@@ -161,7 +161,7 @@ Getter for the total ETH withdrawn on the contract
 
 `totalERC20Withdrawn`
 
-Getter for the total ERC20 released on the contract
+Getter for the total ERC20 withdrawn on the contract
 
     No params
 
